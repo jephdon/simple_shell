@@ -13,29 +13,32 @@ extern char **environ;		/* Global environment variable */
  */
 int main(int argc, char **argv)
 {
-	char *line = NULL;	/* Buffer for the command */
-	char *args[2];
-	const char *err_msg = "./shell: No such file or directory\n";
-	size_t len = 0;		/* Size for getline */
+	char *line = NULL;	/* Buffer for the command input */
+	char *args[2];		/* Arguments array for execve */
+	size_t len = 0;		/* Length for getline */
 	ssize_t n_read;		/* Characters read by getline */
 	pid_t pid;		/* Process ID for fork */
-	(void)argc;
-	(void)argv;
+	(void)argc;		/* Avoid unused parameter warning */
 
 	while (1)
 	{
-		write(STDOUT_FILENO, "#cisfun$ ", 9); /* Show the prompt */
+		/* Display prompt */
+		write(STDOUT_FILENO, "#cisfun$ ", 9);
 		/* Read the user's command */
 		n_read = getline(&line, &len, stdin);
 		if (n_read == -1)
 		{
-			/* Exit on EOF (Ctrl+D) */
-			write(STDOUT_FILENO, "\n", 1);
+			/* Handle EOF (Ctrl+D) */
+			if (isatty(STDIN_FILENO))
+				write(STDOUT_FILENO, "\n", 1);
 			break;
 		}
-		/* Remove the newline from the command */
+		/* Remove trailing newline from the command */
 		line[strcspn(line, "\n")] = '\0';
-		/* Fork a new process */
+		/* Skip is input is empty or only spaces */
+		if (strlen(line) == 0 || strspn(line, " \t") == strlen(line))
+			continue;
+		/* Create child process */
 		pid = fork();
 		if (pid == -1)
 		{
@@ -46,11 +49,12 @@ int main(int argc, char **argv)
 		{
 			/* Child process: run the command */
 			args[0] = line;
-			args[1] = NULL;
+			args[1] = NULL;	/* No arguments allowed */
 			if (execve(line, args, environ) == -1)
 			{
 				/* Print the error message */
-				write(STDERR_FILENO, err_msg, strlen(err_msg));
+				write(STDERR_FILENO, argv[0], strlen(argv[0]));
+				write(STDERR_FILENO, ": No such file or directory\n", 28);
 				exit(1);
 			}
 		}
