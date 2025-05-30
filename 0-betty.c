@@ -3,6 +3,7 @@
 
 /**
  * print_t - Prints a message to the standard output using write.
+ * @str: string to print
  *
  * Return: Always 0 (Success)
  */
