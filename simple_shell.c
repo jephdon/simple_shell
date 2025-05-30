@@ -20,6 +20,7 @@ int main(int argc, char **argv)
 	ssize_t n_read;		/* Characters read by getline */
 	pid_t pid;		/* Process ID for fork */
 	(void)argc;
+	(void)argv;
 
 	while (1)
 	{
