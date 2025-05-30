@@ -1,18 +1,17 @@
 #include <unistd.h>
+#include "main.h"
 
 /**
- * main - Prints a message to the standard output using write
+ * print_t - Prints a message to the standard output using write
+ * @str: string to print
  *
- * Return: Always 0 (Success)
+ * Return: Nothing
  */
-int main(void)
+void print_t(char *str)
 {
-	const char *msg = "Hello, Betty!\n";
 	ssize_t len = 0;
 
-	while (msg[len] != '\0')
+	while (str[len] != '\0')
 		len++;
-	if (write(STDOUT_FILENO, msg, len) == -1)
-		return (1);
-	return (0);
+	write(STDOUT_FILENO, str, len);
 }
