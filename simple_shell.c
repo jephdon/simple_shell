@@ -4,10 +4,6 @@
 #include <string.h>
 #include <sys/wait.h>
 
-#define PROMPT "#cisfun$ "
-#define MAX_COMMAND_LENGTH 1024
-#define MAX_ARGS 64
-
 /**
  * trim_spaces - Removes leading and trailing spaces from a string
  * @str: The sring to trim
@@ -35,31 +31,30 @@ void trim_spaces(char *str)
  */
 int main(void)
 {
-	char command[MAX_COMMAND_LENGTH];
-	pid_t pid;
-	int status, i;
-	char *args[MAX_ARGS];
-	char *token;
-	char *envp[1];
+	char *line = NULL;	/* Buffer for the command */
+	char *env[1];
+	char *args[2];
+	char *err_msg;
+	size_t len = 0;	/* Size for getline */
+	ssize_t n_read;		/* Characters read by getline */
+	pid_t pid;		/* Process ID for fork */
 
 	while (1)
 	{
 		/* Display the prompt */
-		write(STDOUT_FILENO, PROMPT, strlen(PROMPT));
-		/* Read the command from the user */
-		if (fgets(command, MAX_COMMAND_LENGTH, stdin) == NULL)
+		write(STDOUT_FILENO, "#cisfun$ ", 9);
+		/* Read the User's command */
+		n_read = getline(&line, &len, stdin);
+		if (n_read == -1)
 		{
-			/* Handle Ctrl+D (end of file) */
+			/* Exit on EOF (Ctrl+D) */
 			write(STDOUT_FILENO, "\n", 1);
 			break;
 		}
 		/* Remove the newline from the command */
-		command[strcspn(command, "\n")] = '\0';
+		line[strcspn(line, "\n")] = '\0';
 		/* Trim leading and trainling spaces */
-		trim_spaces(command);
-		/* Skip empty or space-only commands */
-		if (strlen(command) == 0)
-			continue;
+		trim_spaces(line);
 		/* Create a child process to run the command */
 		pid = fork();
 		if (pid == -1)
@@ -69,29 +64,23 @@ int main(void)
 		}
 		else if (pid == 0)
 		{
-			/* Child process: parse and run the command */
-			i = 0;
-			token = strtok(command, " ");
-			while (token != NULL && i < MAX_ARGS - 1)
+			/* Child process: run the command */
+			args[0] = line;
+			args[1] = NULL;
+			env[0] = NULL;
+			if (execve(line, args, env) == -1)
 			{
-				args[i++] = token;
-				token = strtok(NULL, " ");
-			}
-			args[i] = NULL; /* Null-terminate the argument list */
-			/* Set up environment and execute the command */
-			envp[0] = NULL;
-			if (execve(args[0], args, envp) == -1)
-			{
-				write(STDERR_FILENO, "./shell: No such file or directory\n", 35);
+				err_msg = "./shell: No such file or directory\n";
+				write(STDERR_FILENO, err_msg, 35);
 				exit(1);
 			}
 		}
 		else
 		{
-
-			/* Parent process: wait for the child to finish */
-			waitpid(pid, &status, 0);
+			/* Parent process: wait for the child*/
+			wait(NULL);
 		}
 	}
+	free(line);
 	return (0);
 }
