@@ -1,45 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/wait.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-
-extern char **environ;		/* Global environment variable */
-
-/**
- * find_command - Searches for the command in PATH directories
- * @command: The command to find
- *
- * Return: A copy of the full path, or NULL
- */
-char *find_command(char *command)
-{
-	char *path = getenv("PATH");	/* Get the PATH variable */
-	char *path_copy;
-	char *dir;
-	char full_path[1024];	/* Big enough to hold a path */
-	struct stat st;		/* Used to check if a file exists */
-
-	if (path == NULL)
-		return (NULL);
-	path_copy = strdup(path); /* Make a copy to avoid messing up PATH */
-	dir = strtok(path_copy, ":"); /* Split PATH by ":" */
-	while (dir != NULL)
-	{
-		/* Build path like /bin/ls */
-		snprintf(full_path, sizeof(full_path), "%s/%s",dir, command);
-		if (stat(full_path, &st) == 0 && (st.st_mode & S_IXUSR))
-		{
-			free(path_copy);
-			return (strdup(full_path)); /* Found */
-		}
-		dir = strtok(NULL, ":"); /* Move to next directory */
-	}
-	free(path_copy);
-	return (NULL); /* Command not found */
-}
+#include "main.h"
 
 /**
  * main - Simple Shell that runs single-word commands
@@ -61,7 +20,7 @@ int main(int argc, char **argv)
 	while (1)	/* Keep shell running */
 	{
 		if (isatty(STDIN_FILENO))/* Display prompt if interactive */
-			write(STDOUT_FILENO, ":) ", 3);
+			write(STDOUT_FILENO, "$ ", 2);
 		n_read = getline(&line, &len, stdin); /* Read user input */
 		if (n_read == -1)	/* End of input (Ctrl+D) */
 		{
@@ -72,6 +31,18 @@ int main(int argc, char **argv)
 		line[strcspn(line, "\n")] = '\0'; /* Remove newline */
 		if (strlen(line) == 0) /* Skip empty lines */
 			continue;
+		/* Check if the user typed "exit" */
+		if (strcmp(line, "exit") == 0)
+		{
+			free(line);
+			return (0);
+		}
+		/* Check if the user typed "env" */
+		if (strcmp(line, "env") == 0)
+		{
+			print_env();	/* Print the env variables */
+			continue;	/* Go back to the prompt */
+		}
 		/* Split input into command and arguments */
 		i = 0;
 		args[i] = strtok(line, " ");
